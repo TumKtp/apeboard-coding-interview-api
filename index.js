@@ -1,18 +1,10 @@
 const express = require("express");
-const {
-  fetchPools,
-  fetchErrorPools,
-  fetchPoolsV0,
-} = require("./state/fetchPools");
+const { fetchPools, fetchErrorPools } = require("./state/fetchPools");
 const { fetchUserStakedAmount } = require("./state/fetchUserStakedAmount");
 const { getMasterChefAddress } = require("./utils/addressHelpers");
-const { getTokenName } = require("./utils/erc20");
 const app = express();
-// Middlewares
-// app.use(express.json());
 
 // Routes
-
 app.get("/pancakeswap/pools", async (_, res) => {
   const pools = await fetchPools(getMasterChefAddress());
   return res.json({

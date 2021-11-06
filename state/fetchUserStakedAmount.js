@@ -1,6 +1,5 @@
 const multicall = require("../utils/multicall");
 const MasterChefAbi = require("../config/abi/masterchef.json");
-const { promises: fs } = require("fs");
 
 const { getPoolLength } = require("../utils/masterChef");
 const { getMasterChefAddress } = require("../utils/addressHelpers");

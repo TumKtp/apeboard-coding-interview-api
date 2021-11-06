@@ -22,16 +22,17 @@ exports.fetchPools = async (masterchefAddress) => {
     poolRawData = await fs.readFile("poolInfo.json");
   } catch (e) {}
   const latestPoolInfo = poolRawData ? JSON.parse(poolRawData).pools : [];
-  if (poolLength === latestPoolInfo.length) {
+  const lastestPoolLength = latestPoolInfo.length;
+  if (poolLength === lastestPoolLength) {
     console.log("There is no update.");
     return latestPoolInfo;
   }
 
   // Update current pool info.
-  console.log("Updating pool information...");
+  console.log("Updating pool information ...");
   // Call: All pools
   const poolsCalls = [];
-  for (let i = latestPoolInfo.length; i < poolLength; i++) {
+  for (let i = lastestPoolLength; i < poolLength; i++) {
     poolsCalls.push({
       address: masterchefAddress,
       name: "poolInfo",
@@ -43,10 +44,10 @@ exports.fetchPools = async (masterchefAddress) => {
 
   // Call: Name of lp tokens
   const lpTokenCalls = [];
-  for (let i = latestPoolInfo.length; i < poolLength; i++) {
+  for (let i = lastestPoolLength; i < poolLength; i++) {
     if (skipPools.includes(i)) continue;
     lpTokenCalls.push({
-      address: newPools[i - latestPoolInfo.length],
+      address: newPools[i - lastestPoolLength],
       name: "name",
     });
   }
@@ -55,7 +56,7 @@ exports.fetchPools = async (masterchefAddress) => {
   // Check the number of token in lp token
   const countLpToken = new Array(poolLength);
   let tokenNameIndex = 0;
-  for (let i = latestPoolInfo.length; i < poolLength; i++) {
+  for (let i = lastestPoolLength; i < poolLength; i++) {
     if (skipPools.includes(i)) countLpToken[i] = 0;
     else if (lpTokenName[tokenNameIndex++][0] === "Pancake LPs")
       countLpToken[i] = 2;
@@ -64,14 +65,14 @@ exports.fetchPools = async (masterchefAddress) => {
 
   // Call: token0, token1 of lp token
   const lpTokenAddressesCalls = [];
-  for (let i = latestPoolInfo.length; i < poolLength; i++) {
+  for (let i = lastestPoolLength; i < poolLength; i++) {
     if (countLpToken[i] === 2) {
       lpTokenAddressesCalls.push({
-        address: newPools[i - latestPoolInfo.length],
+        address: newPools[i - lastestPoolLength],
         name: "token0",
       });
       lpTokenAddressesCalls.push({
-        address: newPools[i - latestPoolInfo.length],
+        address: newPools[i - lastestPoolLength],
         name: "token1",
       });
     }
@@ -81,9 +82,9 @@ exports.fetchPools = async (masterchefAddress) => {
 
   // Merge all token addresses
   const allTokenAddresses = [];
-  for (let i = latestPoolInfo.length; i < poolLength; i++) {
+  for (let i = lastestPoolLength; i < poolLength; i++) {
     if (countLpToken[i] === 1)
-      allTokenAddresses.push(newPools[i - latestPoolInfo.length]);
+      allTokenAddresses.push(newPools[i - lastestPoolLength]);
     else if (countLpToken[i] === 2) {
       allTokenAddresses.push(lpTokenAddresses[lpTokenAddressesIndex][0]);
       allTokenAddresses.push(lpTokenAddresses[lpTokenAddressesIndex + 1][0]);
@@ -97,14 +98,14 @@ exports.fetchPools = async (masterchefAddress) => {
   const rawData = await fs.readFile("tokenSymbols.json");
   console.log("Symbols updated");
   const tokenSymbols = JSON.parse(rawData);
-
+  console.log(poolLength - lastestPoolLength, "Pools updated");
   // Finalize the data
   let tokenIndex = 0;
-  for (let i = latestPoolInfo.length; i < poolLength; i++) {
+  for (let i = lastestPoolLength; i < poolLength; i++) {
     if (countLpToken[i] === 1) {
       latestPoolInfo.push({
         id: i,
-        lpAddress: newPools[i - latestPoolInfo.length],
+        lpAddress: newPools[i - lastestPoolLength],
         token: allTokenAddresses[tokenIndex],
         tokenSymbol: tokenSymbols[allTokenAddresses[tokenIndex]],
       });
@@ -112,7 +113,7 @@ exports.fetchPools = async (masterchefAddress) => {
     } else if (countLpToken[i] === 2) {
       latestPoolInfo.push({
         id: i,
-        lpAddress: newPools[i - latestPoolInfo.length],
+        lpAddress: newPools[i - lastestPoolLength],
         token0: allTokenAddresses[tokenIndex],
         token0Symbol: tokenSymbols[allTokenAddresses[tokenIndex]],
         token1: allTokenAddresses[tokenIndex + 1],
@@ -122,7 +123,7 @@ exports.fetchPools = async (masterchefAddress) => {
     } else
       latestPoolInfo.push({
         id: i,
-        lpAddress: newPools[i - latestPoolInfo.length],
+        lpAddress: newPools[i - lastestPoolLength],
         error: true,
       });
   }
