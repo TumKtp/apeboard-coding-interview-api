@@ -13,33 +13,49 @@ const { getMasterChefAddress } = require("../utils/addressHelpers");
 
 exports.fetchPools = async (masterchefAddress) => {
   // Call: Pool length
-  const poolLength = await getPoolLength(getMasterChefAddress());
+  const poolLength = parseInt(await getPoolLength(getMasterChefAddress()));
   console.log("Pool length", poolLength);
+  let poolRawData;
 
+  // Check latest pool info.
+  try {
+    poolRawData = await fs.readFile("poolInfo.json");
+  } catch (e) {}
+  const latestPoolInfo = poolRawData ? JSON.parse(poolRawData).pools : [];
+  if (poolLength === latestPoolInfo.length) {
+    console.log("There is no update.");
+    return latestPoolInfo;
+  }
+
+  // Update current pool info.
+  console.log("Updating pool information...");
   // Call: All pools
   const poolsCalls = [];
-  for (let i = 0; i < poolLength; i++) {
+  for (let i = latestPoolInfo.length; i < poolLength; i++) {
     poolsCalls.push({
       address: masterchefAddress,
       name: "poolInfo",
       params: [i],
     });
   }
-  let pools = await multicall(MasterChefAbi, poolsCalls);
-  pools = pools.map((pool) => pool[0]);
+  let newPools = await multicall(MasterChefAbi, poolsCalls);
+  newPools = newPools.map((pool) => pool[0]);
 
   // Call: Name of lp tokens
   const lpTokenCalls = [];
-  for (let i = 0; i < poolLength; i++) {
+  for (let i = latestPoolInfo.length; i < poolLength; i++) {
     if (skipPools.includes(i)) continue;
-    lpTokenCalls.push({ address: pools[i], name: "name" });
+    lpTokenCalls.push({
+      address: newPools[i - latestPoolInfo.length],
+      name: "name",
+    });
   }
   const lpTokenName = await multicall(ERC20Abi, lpTokenCalls);
 
   // Check the number of token in lp token
   const countLpToken = new Array(poolLength);
   let tokenNameIndex = 0;
-  for (let i = 0; i < poolLength; i++) {
+  for (let i = latestPoolInfo.length; i < poolLength; i++) {
     if (skipPools.includes(i)) countLpToken[i] = 0;
     else if (lpTokenName[tokenNameIndex++][0] === "Pancake LPs")
       countLpToken[i] = 2;
@@ -48,10 +64,16 @@ exports.fetchPools = async (masterchefAddress) => {
 
   // Call: token0, token1 of lp token
   const lpTokenAddressesCalls = [];
-  for (let i = 0; i < poolLength; i++) {
+  for (let i = latestPoolInfo.length; i < poolLength; i++) {
     if (countLpToken[i] === 2) {
-      lpTokenAddressesCalls.push({ address: pools[i], name: "token0" });
-      lpTokenAddressesCalls.push({ address: pools[i], name: "token1" });
+      lpTokenAddressesCalls.push({
+        address: newPools[i - latestPoolInfo.length],
+        name: "token0",
+      });
+      lpTokenAddressesCalls.push({
+        address: newPools[i - latestPoolInfo.length],
+        name: "token1",
+      });
     }
   }
   const lpTokenAddresses = await multicall(LpTokenAbi, lpTokenAddressesCalls);
@@ -59,15 +81,16 @@ exports.fetchPools = async (masterchefAddress) => {
 
   // Merge all token addresses
   const allTokenAddresses = [];
-  for (let i = 0; i < poolLength; i++) {
-    if (countLpToken[i] === 1) allTokenAddresses.push(pools[i]);
+  for (let i = latestPoolInfo.length; i < poolLength; i++) {
+    if (countLpToken[i] === 1)
+      allTokenAddresses.push(newPools[i - latestPoolInfo.length]);
     else if (countLpToken[i] === 2) {
       allTokenAddresses.push(lpTokenAddresses[lpTokenAddressesIndex][0]);
       allTokenAddresses.push(lpTokenAddresses[lpTokenAddressesIndex + 1][0]);
       lpTokenAddressesIndex += 2;
     }
   }
-  console.log("All token addresses fetched!");
+  console.log("All token addresses are fetched!");
   // Update & Read: token symbol
   console.log("Updaing symbols ...");
   await updateTokenSymbols(allTokenAddresses);
@@ -77,29 +100,37 @@ exports.fetchPools = async (masterchefAddress) => {
 
   // Finalize the data
   let tokenIndex = 0;
-  const poolInfo = new Array(poolLength);
-  for (let i = 0; i < poolLength; i++) {
+  for (let i = latestPoolInfo.length; i < poolLength; i++) {
     if (countLpToken[i] === 1) {
-      poolInfo[i] = {
+      latestPoolInfo.push({
         id: i,
-        lpAddress: pools[i],
+        lpAddress: newPools[i - latestPoolInfo.length],
         token: allTokenAddresses[tokenIndex],
         tokenSymbol: tokenSymbols[allTokenAddresses[tokenIndex]],
-      };
+      });
       tokenIndex++;
     } else if (countLpToken[i] === 2) {
-      poolInfo[i] = {
+      latestPoolInfo.push({
         id: i,
-        lpAddress: pools[i],
+        lpAddress: newPools[i - latestPoolInfo.length],
         token0: allTokenAddresses[tokenIndex],
         token0Symbol: tokenSymbols[allTokenAddresses[tokenIndex]],
         token1: allTokenAddresses[tokenIndex + 1],
         token1Symbol: tokenSymbols[allTokenAddresses[tokenIndex + 1]],
-      };
+      });
       tokenIndex += 2;
-    } else poolInfo[i] = { id: i, lpAddress: pools[i], error: true };
+    } else
+      latestPoolInfo.push({
+        id: i,
+        lpAddress: newPools[i - latestPoolInfo.length],
+        error: true,
+      });
   }
-  return poolInfo;
+  await fs.writeFile(
+    "poolInfo.json",
+    JSON.stringify({ pools: latestPoolInfo })
+  );
+  return latestPoolInfo;
 };
 
 // LEGACY
