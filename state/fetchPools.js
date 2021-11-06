@@ -12,9 +12,10 @@ const { getPoolLength } = require("../utils/masterChef");
 const { getMasterChefAddress } = require("../utils/addressHelpers");
 
 exports.fetchPools = async (masterchefAddress) => {
-  // Fetch pool length
+  // Call: Pool length
   const poolLength = await getPoolLength(getMasterChefAddress());
-  console.log(poolLength);
+  console.log("Pool length", poolLength);
+
   // Call: All pools
   const poolsCalls = [];
   for (let i = 0; i < poolLength; i++) {
@@ -36,7 +37,7 @@ exports.fetchPools = async (masterchefAddress) => {
   const lpTokenName = await multicall(ERC20Abi, lpTokenCalls);
 
   // Check the number of token in lp token
-  const countLpToken = new Array(473);
+  const countLpToken = new Array(poolLength);
   let tokenNameIndex = 0;
   for (let i = 0; i < poolLength; i++) {
     if (skipPools.includes(i)) countLpToken[i] = 0;
@@ -140,7 +141,7 @@ exports.fetchPoolsV0 = async (masterchefAddress) => {
 };
 
 exports.fetchErrorPools = async (masterchefAddress) => {
-  const poolLength = 473;
+  const poolLength = await getPoolLength(getMasterChefAddress());
   const poolsCalls = [];
   for (let i = 0; i < poolLength; i++) {
     poolsCalls.push({

@@ -4,6 +4,7 @@ const {
   fetchErrorPools,
   fetchPoolsV0,
 } = require("./state/fetchPools");
+const { fetchUserStakedAmount } = require("./state/fetchUserStakedAmount");
 const { getMasterChefAddress } = require("./utils/addressHelpers");
 const { getTokenName } = require("./utils/erc20");
 const app = express();
@@ -16,6 +17,14 @@ app.get("/pancakeswap/pools", async (_, res) => {
   const pools = await fetchPools(getMasterChefAddress());
   return res.json({
     pools,
+  });
+});
+
+app.get("/pancakeswap/:userAddress", async (req, res) => {
+  const { userAddress } = req.params;
+  const user = await fetchUserStakedAmount(getMasterChefAddress(), userAddress);
+  return res.json({
+    user,
   });
 });
 
