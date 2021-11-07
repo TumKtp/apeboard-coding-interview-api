@@ -1,4 +1,3 @@
-const { getTokenSymbol } = require("../utils/erc20");
 const { promises: fs } = require("fs");
 const ERC20Abi = require("../config/abi/erc20.json");
 const multicall = require("../utils/multicall");
