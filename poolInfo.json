@@ -507,10 +507,7 @@
     {
       "id": 64,
       "lpAddress": "0x6aaD6e2ec5B3B12F1853518534Cc9C2e5b2177ae",
-      "token0": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
-      "token0Symbol": "WBNB",
-      "token1": "0xBCfCcbde45cE874adCB698cC183deBcF17952812",
-      "token1Symbol": "-"
+      "error": true
     },
     {
       "id": 65,
